@@ -11,3 +11,15 @@ This repository is focused on developing a RL agent that looks learn how to prov
 * tf-agents-nightly-gpu
 
 This repository will include a DQN (or DDQN or A3C) implementation over a custom OpenAI Gym environment.
+
+## Scenario parameters
+
+The simulation scenarios were implemented using SUMO's OSM WebWizard, using the parameters:
+
+* Default zoom level
+* 1000 cars
+* 650 trucks
+* 50 buses
+* 200 motorcycles
+
+In total, 26 scenarios were generated for the agent to generalize

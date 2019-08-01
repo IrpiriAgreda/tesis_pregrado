@@ -1,0 +1,4 @@
+gym
+scikit-fuzzy
+pandas
+numpy
