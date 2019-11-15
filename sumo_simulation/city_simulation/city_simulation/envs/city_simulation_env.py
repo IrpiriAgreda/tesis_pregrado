@@ -31,8 +31,8 @@ class CitySimulation(gym.Env):
         self.action_space = gym.spaces.MultiDiscrete([2 for i in range(5981)])
 
         self.observation_space = gym.spaces.Box(low=0, high=np.infty, shape=(6, 5981))
-
-        self.scenarios = ['km2_centro', 'km2_centro_2', 'km2_jesusmaria', 'km2_lince', 'km2_miraflores', 'km2_sani']
+        self.id_list = []
+        self.scenarios = ['km2_centro', 'km2_centro_2', 'km2_jesusmaria', 'km2_lince',] #'km2_miraflores', 'km2_sani']
         self.sim_configs = {
             'km2_centro': "../sumo_simulation/sim_config/km2_centro/scenario/osm.sumocfg",
             'km2_centro_2': "../sumo_simulation/sim_config/km2_centro_2/scenario/osm.sumocfg",
@@ -68,7 +68,9 @@ class CitySimulation(gym.Env):
         self.assignAllowedVehicles(action)
         reward_means = self.runSimulationSteps()
         #self.iteration_counter += 1
-        self.reward = self.get_reward(reward_means)
+        #self.reward = self.get_reward(reward_means)
+        rew = [traci.edge.getLastStepMeanSpeed(edge_id) for edge_id in id_list]
+        self.reward = sum(rew)/len(rew)
         collect()
 
         return [self.state, self.reward, self.done, {}] #key: measure for key, measure in reward_means.iteritems()
@@ -90,13 +92,14 @@ class CitySimulation(gym.Env):
 
         traci.start(self.sumoCmd)
 
-        for edge_id in traci.lane.getIDList():
-            traci.lane.subscribe(edge_id, [traci.constants.VAR_CO2EMISSION,
-                                           traci.constants.VAR_COEMISSION,
-                                           traci.constants.VAR_PMXEMISSION,
-                                           traci.constants.VAR_NOXEMISSION,
-                                           traci.constants.VAR_NOISEEMISSION,
-                                           traci.constants.VAR_FUELCONSUMPTION])
+        self.id_list = traci.edge.getIDList()
+        # for edge_id in traci.lane.getIDList():
+        #     traci.lane.subscribe(edge_id, [traci.constants.VAR_CO2EMISSION,
+        #                                    traci.constants.VAR_COEMISSION,
+        #                                    traci.constants.VAR_PMXEMISSION,
+        #                                    traci.constants.VAR_NOXEMISSION,
+        #                                    traci.constants.VAR_NOISEEMISSION,
+        #                                    traci.constants.VAR_FUELCONSUMPTION])
 
         self.state = np.zeros(12)
         self.done = 0
@@ -155,6 +158,40 @@ class CitySimulation(gym.Env):
         collect()
 
         return sim_results.T.mean() #pd.DataFrame(sim_results, index=[96,97,99,100,101,102]).T.mean()
+
+    def runSimulationSteps_v2(self):
+        if traci.simulation.getMinExpectedNumber() == 0:
+            self.done = 1
+            #sim_results = pd.DataFrame.from_dict(traci.lane.getAllSubscriptionResults())
+
+            co2 = [traci.edge.getCO2Emission(edge_id) for edge_id in id_list]
+            co = [traci.edge.getCOEmission(edge_id) for edge_id in id_list]
+            nox = [traci.edge.getNOxEmission(edge_id) for edge_id in id_list]
+            pmx = [traci.edge.getPMxEmission(edge_id) for edge_id in id_list]
+            noise = [traci.edge.getNoiseEmission(edge_id) for edge_id in id_list]
+            fuel = [traci.edge.getFuelConsumption(edge_id) for edge_id in id_list]
+
+            sim_results = np.array([co2, co, pmx, nox, noise, fuel])
+
+            self.state =  self.umap.transform(sim_results.values)
+            traci.close(False)
+            collect()
+            return 1#sim_results.T.mean()
+        else:
+            traci.simulationStep(500)
+            co2 = [traci.edge.getCO2Emission(edge_id) for edge_id in id_list]
+            co = [traci.edge.getCOEmission(edge_id) for edge_id in id_list]
+            nox = [traci.edge.getNOxEmission(edge_id) for edge_id in id_list]
+            pmx = [traci.edge.getPMxEmission(edge_id) for edge_id in id_list]
+            noise = [traci.edge.getNoiseEmission(edge_id) for edge_id in id_list]
+            fuel = [traci.edge.getFuelConsumption(edge_id) for edge_id in id_list]
+
+
+            collect()
+
+        sim_results = np.array([co2, co, pmx, nox, noise, fuel])
+        self.state = self.umap.transform(sim_results.values)
+        return 1#sim_results.T.mean()
 
     def get_reward(self, means):
         '''

@@ -1,6 +1,0 @@
-setup.py
-city_simulation.egg-info/PKG-INFO
-city_simulation.egg-info/SOURCES.txt
-city_simulation.egg-info/dependency_links.txt
-city_simulation.egg-info/requires.txt
-city_simulation.egg-info/top_level.txt
