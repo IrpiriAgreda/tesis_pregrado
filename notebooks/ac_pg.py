@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
-
-
 import os
 import sys
 import datetime
@@ -14,28 +11,13 @@ import torch.nn.functional as F
 import torch.optim as optim
 import _pickle as cPickle
 import warnings
-
-
-# In[2]:
-
+from tqdm import tqdm
 
 warnings.filterwarnings('ignore')
 
-
-# In[3]:
-
-
 n_actions = 5981
 
-
-# In[4]:
-
-
 device = T.device("cuda" if T.cuda.is_available() else "cpu")
-
-
-# In[5]:
-
 
 class ActorCriticNetwork(nn.Module):
     def __init__(self, alpha, input_dims, fc1_dims, fc2_dims, fc3_dims,
@@ -82,10 +64,6 @@ class ActorCriticNetwork(nn.Module):
         v = self.v(x)
         return (pi, v)
 
-
-# In[6]:
-
-
 class Agent(object):
     """ Agent class for use with a single actor critic network that shares
         the lowest layers. For use with more complex environments such as
@@ -125,10 +103,6 @@ class Agent(object):
 
         self.actor_critic.optimizer.step()
 
-
-# In[7]:
-
-
 if 'SUMO_HOME' in os.environ:
     tools = os.path.join(os.environ['SUMO_HOME'], 'tools')
     sys.path.append(tools)
@@ -136,15 +110,7 @@ if 'SUMO_HOME' in os.environ:
 else:
     sys.exit("please declare environment variable 'SUMO_HOME'")
 
-
-# In[8]:
-
-
 sumoCmd = ["/usr/bin/sumo/bin/sumo", "-c", "../sumo_simulation/sim_config/km2_centro/scenario/osm.sumocfg"]
-
-
-# In[9]:
-
 
 def run_experiments(num_episodes, date, exp_name, simconfig, layers, agent):
     #Main parameters
@@ -253,15 +219,6 @@ def run_experiments(num_episodes, date, exp_name, simconfig, layers, agent):
         T.save(agent.actor_critic.optimizer.state_dict(), './output_weights/policy/{}/ac_optimizer_experiment_ep_{}.pt'.format(exp_name, i_episode))
 
 
-# In[10]:
-
-
-from tqdm import tqdm
-
-
-# In[11]:
-
-
 today = str(datetime.datetime.today())[:10]
 
 for exp in tqdm([0,2,3]):
@@ -276,10 +233,7 @@ for exp in tqdm([0,2,3]):
             agent = Agent(alpha=0.001, input_dims=[6], gamma=0.001,
                   n_actions=n_actions)
         
-        run_experiments(1500, today, 'km2_centro_pg_scenario_{}_layers_{}_date_{}'.format(exp, layers, today), exp, layers, agent)
-
-
-# In[ ]:
+        run_experiments(3000, today, 'km2_centro_pg_scenario_{}_layers_{}_date_{}'.format(exp, layers, today), exp, layers, agent)
 
 
 
